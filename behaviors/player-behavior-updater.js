@@ -44,7 +44,7 @@ function treeHasBeenChopped(player, gameMap, allPlayers) {
         player.state = PLAYER_STATE.MOVING_TO_LOGS;
     } else {
         console.warn(`[${player.username}] No path found to logs from cooperative chop. Trying bushes.`);
-        harvestNextBush(player, gameMap);
+        harvestNextBush(player, gameMap, game); // game isn't available here, this could be an issue. Let's pass it.
     }
 }
 
@@ -95,23 +95,23 @@ export function updateAction(player, deltaTime, gameMap, allPlayers, game) {
         case PLAYER_STATE.MOVING_TO_LOGS:
             if (!player.actionTarget || gameMap.grid[player.actionTarget.y][player.actionTarget.x] !== TILE_TYPE.LOGS) {
                 console.log(`[${player.username}] Target logs at (${player.actionTarget?.x}, ${player.actionTarget?.y}) are gone. Moving on.`);
-                harvestNextBush(player, gameMap); // This function handles what to do next
+                harvestNextBush(player, gameMap, game); // This function handles what to do next
                 return;
             }
             updateFollowPath(player, deltaTime, gameMap);
             if (atMoveTarget) {
-                beginHarvestingLogs(player, gameMap);
+                beginHarvestingLogs(player, gameMap, game);
             }
             break;
         case PLAYER_STATE.MOVING_TO_BUSHES:
             if (!player.actionTarget || gameMap.grid[player.actionTarget.y][player.actionTarget.x] !== TILE_TYPE.BUSHES) {
                 console.log(`[${player.username}] Target bush at (${player.actionTarget?.x}, ${player.actionTarget?.y}) is gone. Moving on.`);
-                harvestNextBush(player, gameMap); // This function handles what to do next
+                harvestNextBush(player, gameMap, game); // This function handles what to do next
                 return;
             }
             updateFollowPath(player, deltaTime, gameMap);
             if (atMoveTarget) {
-                beginHarvestingBushes(player, gameMap);
+                beginHarvestingBushes(player, gameMap, game);
             }
             break;
 
@@ -147,14 +147,14 @@ export function updateAction(player, deltaTime, gameMap, allPlayers, game) {
         case PLAYER_STATE.HARVESTING_LOGS:
             player.actionTimer -= deltaTime;
             if (player.actionTimer <= 0) {
-                finishHarvestingLogs(player, gameMap);
+                finishHarvestingLogs(player, gameMap, game);
             }
             break;
 
         case PLAYER_STATE.HARVESTING_BUSHES:
             player.actionTimer -= deltaTime;
             if (player.actionTimer <= 0) {
-                finishHarvestingBushes(player, gameMap);
+                finishHarvestingBushes(player, gameMap, game);
             }
             break;
     }

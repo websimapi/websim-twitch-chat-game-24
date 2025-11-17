@@ -81,7 +81,7 @@ export function beginChopping(player, gameMap, game) {
     }
 
     const targetId = `${player.actionTarget.x},${player.actionTarget.y}`;
-    const CHOP_WORK = 11000; // ms
+    const CHOP_WORK = game.settings.woodcutting.tree_chop_work;
 
     if (!game.activeChoppingTargets.has(targetId)) {
         game.activeChoppingTargets.set(targetId, { 
@@ -163,7 +163,7 @@ export function finishChopping(player, gameMap, game, allPlayers) {
     player.actionTarget = { x: treeX, y: treeY };
 
     console.log(`[${player.username}] Finished chopping tree. Timestamp: ${Date.now()}`);
-    player.addExperience('woodcutting', 3);
+    player.addExperience('woodcutting', game.settings.woodcutting.finish_chop_xp);
 
     player.pendingHarvest = [];
     let spawnedBushes = 0;

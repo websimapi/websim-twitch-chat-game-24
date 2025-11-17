@@ -2,6 +2,7 @@ import { initTwitch } from './twitch.js';
 import { Game } from './game.js';
 import { AudioManager } from './audio-manager.js';
 import * as Persistence from './game/persistence.js';
+import { loadSettings, saveSettings, DEFAULT_GAME_SETTINGS } from './game-settings.js';
 
 const connectContainer = document.getElementById('connect-container');
 const worldSelectContainer = document.getElementById('world-select-container');
@@ -19,10 +20,10 @@ const STORAGE_KEY = 'twitch_channel_name';
 const PLAYERS_STORAGE_PREFIX = 'twitch_game_players_';
 const MAP_STORAGE_PREFIX = 'twitch_game_map_';
 
-function showGame(channel, worldName, hosts) {
+function showGame(channel, worldName, hosts, settings) {
     worldSelectContainer.classList.add('hidden');
     gameContainer.classList.remove('hidden');
-    startGame(channel, worldName, hosts);
+    startGame(channel, worldName, hosts, settings);
 }
 
 function showDeleteConfirmation(onConfirm) {
@@ -83,21 +84,51 @@ function showWorldSelect(channel) {
 
 function showWorldSettings(channel, worldName) {
     let currentWorldName = worldName;
+    const settings = loadSettings(channel, currentWorldName);
+
     worldSettingsContainer.classList.remove('hidden');
     worldSettingsContainer.innerHTML = `
-        <div class="settings-section">
-            <label for="world-name-input">World Name</label>
-            <input type="text" id="world-name-input" class="world-name-input" value="${currentWorldName}">
-        </div>
-        <div class="settings-section admin-management">
-            <label for="admin-input">Manage Admins</label>
-            <p style="font-size: 14px; color: #aaa; margin: 0;">Admins can use special commands in-game.</p>
-            <div class="admin-input-group">
-                <input type="text" id="admin-input" placeholder="Enter username...">
-                <button id="add-admin-btn">Add Admin</button>
+        <div class="settings-grid">
+            <div class="settings-column">
+                <div class="settings-section">
+                    <label for="world-name-input">World Name</label>
+                    <input type="text" id="world-name-input" class="world-name-input" value="${currentWorldName}">
+                </div>
+                <div class="settings-section admin-management">
+                    <label>Manage Admins</label>
+                    <p class="setting-desc">Admins can use special commands in-game.</p>
+                    <div class="admin-input-group">
+                        <input type="text" id="admin-input" placeholder="Enter username...">
+                        <button id="add-admin-btn">Add Admin</button>
+                    </div>
+                    <ul id="admin-list"></ul>
+                </div>
             </div>
-            <ul id="admin-list"></ul>
+            <div class="settings-column">
+                <div class="settings-section">
+                    <label>Game Rates & XP</label>
+                    <div class="rate-grid">
+                        <!-- Energy -->
+                        <div class="rate-item"><label for="energy_duration_seconds">Energy Duration (s)</label><input type="number" id="energy_duration_seconds" data-path="energy.duration_seconds" value="${settings.energy.duration_seconds}"></div>
+                        <div class="rate-item"><label for="energy_chat_cooldown_seconds">Chat Cooldown (s)</label><input type="number" id="energy_chat_cooldown_seconds" data-path="energy.chat_cooldown_seconds" value="${settings.energy.chat_cooldown_seconds}"></div>
+                        <!-- Woodcutting -->
+                        <div class="rate-item"><label for="tree_chop_work">Tree Chop Work (ms)</label><input type="number" id="tree_chop_work" data-path="woodcutting.tree_chop_work" value="${settings.woodcutting.tree_chop_work}"></div>
+                        <div class="rate-item"><label for="finish_chop_xp">Chop Finish XP</label><input type="number" id="finish_chop_xp" data-path="woodcutting.finish_chop_xp" value="${settings.woodcutting.finish_chop_xp}"></div>
+                        <div class="rate-item"><label for="harvest_logs_xp_per_log">Log Harvest WC XP</label><input type="number" id="harvest_logs_xp_per_log" data-path="woodcutting.harvest_logs_xp_per_log" value="${settings.woodcutting.harvest_logs_xp_per_log}"></div>
+                        <!-- Gathering -->
+                        <div class="rate-item"><label for="harvest_logs_duration_seconds">Log Harvest Time (s)</label><input type="number" id="harvest_logs_duration_seconds" data-path="gathering.harvest_logs_duration_seconds" value="${settings.gathering.harvest_logs_duration_seconds}"></div>
+                        <div class="rate-item"><label for="harvest_logs_min_yield">Logs Min Yield</label><input type="number" id="harvest_logs_min_yield" data-path="gathering.harvest_logs_min_yield" value="${settings.gathering.harvest_logs_min_yield}"></div>
+                        <div class="rate-item"><label for="harvest_logs_max_yield">Logs Max Yield</label><input type="number" id="harvest_logs_max_yield" data-path="gathering.harvest_logs_max_yield" value="${settings.gathering.harvest_logs_max_yield}"></div>
+                        <div class="rate-item"><label for="harvest_logs_xp">Log Harvest Gath XP</label><input type="number" id="harvest_logs_xp" data-path="gathering.harvest_logs_xp" value="${settings.gathering.harvest_logs_xp}"></div>
+                        <div class="rate-item"><label for="harvest_bushes_duration_seconds_base">Bush Harvest Time (s)</label><input type="number" id="harvest_bushes_duration_seconds_base" data-path="gathering.harvest_bushes_duration_seconds_base" value="${settings.gathering.harvest_bushes_duration_seconds_base}"></div>
+                        <div class="rate-item"><label for="harvest_bushes_min_yield">Bush Min Yield</label><input type="number" id="harvest_bushes_min_yield" data-path="gathering.harvest_bushes_min_yield" value="${settings.gathering.harvest_bushes_min_yield}"></div>
+                        <div class="rate-item"><label for="harvest_bushes_max_yield">Bush Max Yield</label><input type="number" id="harvest_bushes_max_yield" data-path="gathering.harvest_bushes_max_yield" value="${settings.gathering.harvest_bushes_max_yield}"></div>
+                        <div class="rate-item"><label for="harvest_bushes_xp">Bush Harvest XP</label><input type="number" id="harvest_bushes_xp" data-path="gathering.harvest_bushes_xp" value="${settings.gathering.harvest_bushes_xp}"></div>
+                    </div>
+                </div>
+            </div>
         </div>
+
         <button id="play-btn">Play</button>
 
         <div class="settings-section delete-section">
@@ -141,6 +172,14 @@ function showWorldSettings(channel, worldName) {
             if (hostsData) {
                 localStorage.setItem(newKeys.hostsStorageKey, hostsData);
                 localStorage.removeItem(oldKeys.hostsStorageKey);
+            }
+
+            const oldSettingsKey = `twitch_game_settings_${channel}_${currentWorldName}`;
+            const newSettingsKey = `twitch_game_settings_${channel}_${newWorldName}`;
+            const settingsData = localStorage.getItem(oldSettingsKey);
+            if(settingsData) {
+                localStorage.setItem(newSettingsKey, settingsData);
+                localStorage.removeItem(oldSettingsKey);
             }
             
             console.log(`World "${currentWorldName}" renamed to "${newWorldName}".`);
@@ -227,7 +266,21 @@ function showWorldSettings(channel, worldName) {
 
     playBtn.addEventListener('click', () => {
         const renamed = handleRename(); // Save name change on play, if any
-        showGame(channel, currentWorldName, hosts);
+        const currentSettings = loadSettings(channel, currentWorldName);
+        showGame(channel, currentWorldName, hosts, currentSettings);
+    });
+
+    // --- Settings Rate Logic ---
+    worldSettingsContainer.querySelectorAll('.rate-grid input[type="number"]').forEach(input => {
+        input.addEventListener('change', () => {
+            const path = input.dataset.path.split('.');
+            let current = settings;
+            for (let i = 0; i < path.length - 1; i++) {
+                current = current[path[i]];
+            }
+            current[path[path.length - 1]] = Number(input.value);
+            saveSettings(channel, currentWorldName, settings);
+        });
     });
 
     // --- Delete World Logic ---
@@ -454,13 +507,13 @@ function processImportedWorld(worldData) {
     populateWorldList(channel);
 }
 
-function startGame(channel, worldName, hosts) {
+function startGame(channel, worldName, hosts, settings) {
     console.log(`Connecting to #${channel}, world: ${worldName}...`);
     // showGame(); // showGame is now the entry point
 
     AudioManager.init();
 
-    const game = new Game(canvas, channel, worldName, hosts);
+    const game = new Game(canvas, channel, worldName, hosts, settings);
     
     initTwitch(
         channel, 

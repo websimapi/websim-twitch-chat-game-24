@@ -7,7 +7,7 @@ import { TILE_TYPE } from './map-tile-types.js';
 import { findPath } from './pathfinding.js';
 import { beginChopping, beginHarvestingBushes, beginHarvestingLogs } from './behaviors/index.js';
 
-export const ENERGY_DURATION_MS = 3600 * 1000; // 1 hour (3600 seconds)
+export const ENERGY_DURATION_MS = 3600 * 1000; // This will now be controlled by settings
 
 const MAX_ENERGY_SLOTS = 12;
 
@@ -342,15 +342,16 @@ export class Player {
         }
         
         if (this.isPowered()) {
+            const ENERGY_DURATION_MS_FROM_SETTINGS = game.settings.energy.duration_seconds * 1000;
             // 1. Energy Draining Logic
             const now = Date.now();
             const oldestTimestamp = this.energyTimestamps[0];
             
             // Calculate drain status
             const timeElapsed = now - oldestTimestamp;
-            this.currentCellDrainRatio = Math.min(1, timeElapsed / ENERGY_DURATION_MS);
+            this.currentCellDrainRatio = Math.min(1, timeElapsed / ENERGY_DURATION_MS_FROM_SETTINGS);
             
-            const expirationTime = oldestTimestamp + ENERGY_DURATION_MS;
+            const expirationTime = oldestTimestamp + ENERGY_DURATION_MS_FROM_SETTINGS;
             
             const remainingMS = expirationTime - now;
 
