@@ -92,7 +92,10 @@ function showWorldSettings(channel, worldName) {
             // Re-select the newly named world
             setTimeout(() => {
                 const worldItems = document.querySelectorAll('.world-item');
-                const newWorldEl = Array.from(worldItems).find(el => el.querySelector('h3').textContent === newWorldName);
+                const newWorldEl = Array.from(worldItems).find(el => {
+                    const h3 = el.querySelector('h3');
+                    return h3 && h3.textContent === newWorldName;
+                });
                 if (newWorldEl) {
                     newWorldEl.classList.add('selected');
                 }
