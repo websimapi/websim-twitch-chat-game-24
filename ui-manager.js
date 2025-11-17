@@ -2,6 +2,7 @@ import * as Persistence from './game/persistence.js';
 import * as DOM from './ui/dom-elements.js';
 import { populateWorldList } from './ui/world-list.js';
 import { handleWorldImport } from './ui/world-import-export.js';
+import { createNewWorld } from './ui/world-management.js';
 
 const STORAGE_KEY = 'twitch_channel_name';
 
@@ -30,6 +31,13 @@ export function initUIManager(onStartGame) {
         if (channel) {
             localStorage.setItem(STORAGE_KEY, channel);
             showWorldSelect(channel);
+        }
+    });
+
+    DOM.createWorldBtn.addEventListener('click', () => {
+        const channel = localStorage.getItem(STORAGE_KEY);
+        if (channel) {
+            createNewWorld(channel);
         }
     });
 

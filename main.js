@@ -2,6 +2,7 @@ import { initTwitch } from './twitch.js';
 import { Game } from './game.js';
 import { AudioManager } from './audio-manager.js';
 import { initUIManager } from './ui-manager.js';
+import { createNewWorld } from './ui/world-management.js';
 
 const canvas = document.getElementById('game-canvas');
 

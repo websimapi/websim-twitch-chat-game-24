@@ -47,7 +47,9 @@ export function initTwitch(channel, onChatter, onCommand) {
                 lastMessageTimestamp: now,
             };
             recentChatters.set(userId, chatterData);
-            onChatter(chatterData);
+            if (userId) { // Double-check userId before calling onChatter
+                onChatter(chatterData);
+            }
         }
 
         // Handle commands on every message
