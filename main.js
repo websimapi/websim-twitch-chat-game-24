@@ -61,7 +61,7 @@ function showWorldSettings(channel, worldName) {
             if (existingWorlds.includes(newWorldName)) {
                 alert(`A world named "${newWorldName}" already exists. Please choose a different name.`);
                 worldNameInputEl.value = currentWorldName; // Revert
-                return;
+                return false;
             }
 
             const oldKeys = Persistence.getStorageKeys(channel, currentWorldName);
@@ -100,10 +100,29 @@ function showWorldSettings(channel, worldName) {
                     newWorldEl.classList.add('selected');
                 }
             }, 0);
+            return true;
         }
+        return false;
     }
 
-    worldNameInputEl.addEventListener('blur', handleRename);
+    worldNameInputEl.addEventListener('blur', () => {
+        if (handleRename()) {
+            // After a successful rename, we need to "re-render" the settings
+            // to ensure all event handlers and variables are using the new world name.
+            showWorldSettings(channel, currentWorldName);
+            // Re-select the item in the list after re-render
+            setTimeout(() => {
+                const worldItems = document.querySelectorAll('.world-item');
+                const newWorldEl = Array.from(worldItems).find(el => {
+                    const h3 = el.querySelector('h3');
+                    return h3 && h3.textContent === currentWorldName;
+                });
+                if (newWorldEl) {
+                    newWorldEl.classList.add('selected');
+                }
+            }, 0);
+        }
+    });
 
     const { hostsStorageKey } = Persistence.getStorageKeys(channel, currentWorldName);
     let hosts = Persistence.loadHosts(hostsStorageKey);
