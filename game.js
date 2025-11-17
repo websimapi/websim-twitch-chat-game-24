@@ -247,7 +247,7 @@ export class Game {
         }
 
         player.addEnergy();
-        console.log(`Player ${player.username} gained energy. Current energy cells: ${player.energyTimestamps.length}, Current Position: (${player.pixelX.toFixed(2)}, ${player.pixelY.toFixed(2)})`);
+        console.log(`Player ${player.username} gained energy. Current energy cells: ${player.energy.timestamps.length}, Current Position: (${player.pixelX.toFixed(2)}, ${player.pixelY.toFixed(2)})`);
     }
 
     start() {
