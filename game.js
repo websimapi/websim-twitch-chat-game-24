@@ -227,7 +227,7 @@ export class Game {
 
         if (!player) {
             // Truly new player (not in persistence or current map)
-            player = new Player(chatter.id, chatter.username, chatter.color);
+            player = new Player(chatter.id, chatter.username, chatter.color, this.settings);
             this.players.set(chatter.id, player);
             
             // Ensure player is positioned correctly on the map, avoiding obstacles
