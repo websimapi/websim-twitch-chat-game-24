@@ -188,6 +188,23 @@ body, html {
     max-width: 450px;
 }
 
+.settings-section.delete-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #555;
+    max-width: 450px;
+    color: #ffcccc;
+}
+
+.settings-section.delete-section label {
+    color: #ff8888;
+}
+
+.delete-input-group {
+    display: flex;
+    gap: 10px;
+}
+
 .settings-section {
     display: flex;
     flex-direction: column;
@@ -285,6 +302,105 @@ body, html {
 
 #play-btn:hover {
     background-color: #45a049;
+}
+
+#delete-world-btn {
+    padding: 8px 15px;
+    font-size: 14px;
+    border: none;
+    background-color: #992222;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+#delete-world-btn:hover:not(:disabled) {
+    background-color: #cc3333;
+}
+
+#delete-world-btn:disabled {
+    background-color: #555;
+    color: #999;
+    cursor: not-allowed;
+}
+
+#delete-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#delete-confirm-popup {
+    background-color: #2a2a2a;
+    padding: 30px 40px;
+    border-radius: 8px;
+    border: 1px solid #ff4444;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    max-width: 400px;
+}
+
+#delete-confirm-popup h2 {
+    margin-top: 0;
+    color: #ff8888;
+}
+
+#delete-confirm-popup p {
+    color: #ccc;
+    margin-bottom: 25px;
+}
+
+#delete-confirm-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #ff4444;
+    font-size: 30px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.delete-confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.delete-confirm-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.delete-confirm-actions button:hover {
+    transform: scale(1.05);
+}
+
+#delete-confirm-yes-btn {
+    background-color: #cc3333;
+    color: white;
+}
+
+#delete-confirm-cancel-btn {
+    background-color: #ff8c00;
+    color: white;
 }
 
 #game-container {

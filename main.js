@@ -25,6 +25,55 @@ function showGame(channel, worldName, hosts) {
     startGame(channel, worldName, hosts);
 }
 
+function showDeleteConfirmation(onConfirm) {
+    const overlay = document.createElement('div');
+    overlay.id = 'delete-confirm-overlay';
+
+    const popup = document.createElement('div');
+    popup.id = 'delete-confirm-popup';
+
+    popup.innerHTML = `
+        <button id="delete-confirm-close-btn">&times;</button>
+        <h2>Are you sure?</h2>
+        <p>This will permanently delete the world and all its data. This action cannot be undone.</p>
+        <div class="delete-confirm-actions">
+            <button id="delete-confirm-yes-btn">Yes (Cannot be undone)</button>
+            <button id="delete-confirm-cancel-btn">Cancel</button>
+        </div>
+    `;
+
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    const closePopup = () => {
+        if (document.body.contains(overlay)) {
+            document.body.removeChild(overlay);
+        }
+        document.removeEventListener('keydown', handleEsc);
+    };
+
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+            closePopup();
+        }
+    };
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            closePopup();
+        }
+    });
+
+    document.getElementById('delete-confirm-close-btn').addEventListener('click', closePopup);
+    document.getElementById('delete-confirm-cancel-btn').addEventListener('click', closePopup);
+    document.getElementById('delete-confirm-yes-btn').addEventListener('click', () => {
+        onConfirm();
+        closePopup();
+    });
+
+    document.addEventListener('keydown', handleEsc, { once: true });
+}
+
 function showWorldSelect(channel) {
     connectContainer.classList.add('hidden');
     worldSelectContainer.classList.remove('hidden');
@@ -50,6 +99,15 @@ function showWorldSettings(channel, worldName) {
             <ul id="admin-list"></ul>
         </div>
         <button id="play-btn">Play</button>
+
+        <div class="settings-section delete-section">
+            <label for="delete-world-input">Delete World</label>
+            <p style="font-size: 14px; color: #aaa; margin: 0;">This action cannot be undone. To confirm, type the world name below.</p>
+            <div class="delete-input-group">
+                <input type="text" id="delete-world-input" placeholder="Type world name to confirm...">
+                <button id="delete-world-btn" disabled>Delete</button>
+            </div>
+        </div>
     `;
 
     const worldNameInputEl = document.getElementById('world-name-input');
@@ -170,6 +228,34 @@ function showWorldSettings(channel, worldName) {
     playBtn.addEventListener('click', () => {
         const renamed = handleRename(); // Save name change on play, if any
         showGame(channel, currentWorldName, hosts);
+    });
+
+    // --- Delete World Logic ---
+    const deleteWorldInput = document.getElementById('delete-world-input');
+    const deleteWorldBtn = document.getElementById('delete-world-btn');
+
+    deleteWorldInput.addEventListener('input', () => {
+        if (deleteWorldInput.value === currentWorldName) {
+            deleteWorldBtn.disabled = false;
+        } else {
+            deleteWorldBtn.disabled = true;
+        }
+    });
+
+    deleteWorldBtn.addEventListener('click', () => {
+        if (deleteWorldBtn.disabled) return;
+
+        showDeleteConfirmation(() => {
+            console.log(`Deleting world: ${currentWorldName}`);
+            const keys = Persistence.getStorageKeys(channel, currentWorldName);
+            localStorage.removeItem(keys.playersStorageKey);
+            localStorage.removeItem(keys.mapStorageKey);
+            localStorage.removeItem(keys.hostsStorageKey);
+            
+            worldSettingsContainer.classList.add('hidden');
+            populateWorldList(channel);
+            alert(`World "${currentWorldName}" has been deleted.`);
+        });
     });
 
     renderAdmins();
