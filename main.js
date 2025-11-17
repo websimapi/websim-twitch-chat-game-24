@@ -168,7 +168,7 @@ function showWorldSettings(channel, worldName) {
     });
 
     playBtn.addEventListener('click', () => {
-        handleRename(); // Save name change on play, if any
+        const renamed = handleRename(); // Save name change on play, if any
         showGame(channel, currentWorldName, hosts);
     });
 
