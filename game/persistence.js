@@ -89,7 +89,7 @@ export function saveHosts(hosts, hostsStorageKey) {
     }
 }
 
-export function loadPlayers(players, playersStorageKey) {
+export function loadPlayers(players, playersStorageKey, gameSettings) {
     try {
         const data = localStorage.getItem(playersStorageKey);
         if (data) {
@@ -97,7 +97,7 @@ export function loadPlayers(players, playersStorageKey) {
             for (const id in playerStates) {
                 const state = playerStates[id];
                 if (state && state.id && state.username) {
-                    const player = new Player(state.id, state.username, state.color);
+                    const player = new Player(state.id, state.username, state.color, gameSettings);
                     player.loadState(state);
                     players.set(id, player);
                 }

@@ -34,7 +34,7 @@ export class Game {
         setEnergyCooldown(this.settings.energy.chat_cooldown_seconds);
 
         Persistence.loadMap(this.map, this.mapStorageKey);
-        Persistence.loadPlayers(this.players, this.playersStorageKey);
+        Persistence.loadPlayers(this.players, this.playersStorageKey, this.settings);
 
         // Validate player states after loading everything
         for (const player of this.players.values()) {

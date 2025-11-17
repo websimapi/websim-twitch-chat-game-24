@@ -6,10 +6,11 @@ import { renderPlayer } from './player-renderer.js';
 import { TILE_TYPE } from './map-tile-types.js';
 import { findPath } from './pathfinding.js';
 import { beginChopping, beginHarvestingBushes, beginHarvestingLogs } from './behaviors/index.js';
+import { PlayerEnergy } from './player-energy.js';
+import { PlayerInventory } from './player-inventory.js';
+import { PlayerSkills } from './player-skills.js';
 
 export const ENERGY_DURATION_MS = 3600 * 1000; // This will now be controlled by settings
-
-const MAX_ENERGY_SLOTS = 12;
 
 function findNearestEmptySpot(gridX, gridY, gameMap) {
     if (!gameMap.isColliding(gridX, gridY)) {
@@ -44,11 +45,12 @@ function findNearestEmptySpot(gridX, gridY, gameMap) {
 }
 
 export class Player {
-    constructor(id, username, color) {
+    constructor(id, username, color, gameSettings) {
         this.id = id;
         this.username = username;
         this.color = color;
-        this.energyTimestamps = []; // Use timestamps for cell tracking
+        this.gameSettings = gameSettings;
+        this.energy = new PlayerEnergy(this, this.gameSettings);
 
         // Position in grid coordinates
         this.x = 0;
@@ -71,35 +73,22 @@ export class Player {
 
         this.speed = 1; // tiles per second
         this.moveCooldown = 2 + Math.random() * 5; // time to wait before picking new target
-        this.lastEnergyLogTime = 0; // Initialize log throttle
-        this.currentCellDrainRatio = 0; // 0 (full) to 1 (empty)
-        this.flashState = 0; // For subtle flashing effect
-
+        
         // Chopping state
         this.state = PLAYER_STATE.IDLE;
         this.actionTarget = null; // {x, y} of the tree, logs, etc.
         this.actionTimer = 0;
         this.actionTotalTime = 0;
-        this.inventory = { logs: [], leaves: [] };
+        this.inventory = new PlayerInventory();
         this.pendingHarvest = []; // {x, y, type} for bushes
         this.activeCommand = null;
         this.followTargetId = null;
         this.lastSearchPosition = null; // For gathering wander logic
-        this.skills = {
-            woodcutting: [],
-            gathering: []
-        };
+        this.skills = new PlayerSkills(this);
     }
 
     addExperience(skill, amount) {
-        if (this.skills[skill]) {
-            const timestamp = Date.now();
-            this.skills[skill].push({ amount, timestamp });
-            const totalExp = this.skills[skill].reduce((sum, entry) => sum + entry.amount, 0);
-            console.log(`[${this.username}] Gained +${amount} XP in ${skill}. Total: ${totalExp}. Timestamp: ${timestamp}`);
-        } else {
-            console.warn(`[${this.username}] Attempted to add XP to non-existent skill: ${skill}`);
-        }
+        this.skills.addExperience(skill, amount);
     }
 
     setInitialPosition(gameMap) {
@@ -138,18 +127,11 @@ export class Player {
     }
 
     addEnergy(amount = 1) {
-        for (let i = 0; i < amount; i++) {
-            if (this.energyTimestamps.length < MAX_ENERGY_SLOTS) {
-                // Add current timestamp for a new energy cell
-                this.energyTimestamps.push(Date.now());
-            } else {
-                break; // Stop if slots are full
-            }
-        }
+        this.energy.add(amount);
     }
 
     isPowered() {
-        return this.energyTimestamps.length > 0;
+        return this.energy.isPowered();
     }
 
     getState() {
@@ -157,11 +139,11 @@ export class Player {
             id: this.id,
             username: this.username,
             color: this.color,
-            energyTimestamps: this.energyTimestamps, // Store timestamps
+            energyTimestamps: this.energy.getState(),
             pixelX: this.pixelX,
             pixelY: this.pixelY,
             path: this.path,
-            inventory: this.inventory,
+            inventory: this.inventory.getState(),
             state: this.state,
             actionTarget: this.actionTarget, // Save the action target
             actionTimer: this.actionTimer,
@@ -170,7 +152,7 @@ export class Player {
             activeCommand: this.activeCommand,
             followTargetId: this.followTargetId,
             lastSearchPosition: this.lastSearchPosition,
-            skills: this.skills,
+            skills: this.skills.getState(),
             offsetX: this.offsetX,
             offsetY: this.offsetY,
         };
@@ -205,23 +187,22 @@ export class Player {
 
         // Load energyTimestamps
         if (state.energyTimestamps && Array.isArray(state.energyTimestamps)) {
-            this.energyTimestamps = state.energyTimestamps;
-            // Ensure oldest is first for draining
-            this.energyTimestamps.sort((a, b) => a - b);
+            this.energy.loadState(state.energyTimestamps);
         } else if (state.energy !== undefined && state.energy > 0) {
             // Handle conversion from legacy 'energy' count to timestamps.
-            this.energyTimestamps = [];
+            const timestamps = [];
             for (let i = 0; i < state.energy; i++) {
                 // Assume legacy energy starts draining immediately upon load
-                this.energyTimestamps.push(Date.now());
+                timestamps.push(Date.now());
             }
+            this.energy.loadState(timestamps);
         }
         
         this.username = state.username || this.username;
         this.color = state.color || this.color;
-        this.inventory = state.inventory || { logs: [], leaves: [] };
+        if(state.inventory) this.inventory.loadState(state.inventory);
         this.pendingHarvest = state.pendingHarvest || [];
-        this.skills = state.skills || { woodcutting: [], gathering: [] };
+        if(state.skills) this.skills.loadState(state.skills);
         this.activeCommand = state.activeCommand || null;
         this.followTargetId = state.followTargetId || null;
         this.lastSearchPosition = state.lastSearchPosition || null;
@@ -342,49 +323,12 @@ export class Player {
         }
         
         if (this.isPowered()) {
-            const ENERGY_DURATION_MS_FROM_SETTINGS = game.settings.energy.duration_seconds * 1000;
-            // 1. Energy Draining Logic
-            const now = Date.now();
-            const oldestTimestamp = this.energyTimestamps[0];
+            const hadPower = this.energy.update(deltaTime);
             
-            // Calculate drain status
-            const timeElapsed = now - oldestTimestamp;
-            this.currentCellDrainRatio = Math.min(1, timeElapsed / ENERGY_DURATION_MS_FROM_SETTINGS);
-            
-            const expirationTime = oldestTimestamp + ENERGY_DURATION_MS_FROM_SETTINGS;
-            
-            const remainingMS = expirationTime - now;
-
-            // Update flash state for visualization
-            // Use a quick oscillation based on time
-            // Reduced frequency (750) for a slower, smoother pulse effect
-            this.flashState = (Math.sin(now / 750) + 1) / 2; // Value between 0 and 1
-
-            // Console log remaining time for the current draining energy cell (as requested)
-            if (remainingMS > 0) {
-                // Throttle logging to once per minute (60,000 ms)
-                const LOG_INTERVAL = 60000;
-                
-                if (now - this.lastEnergyLogTime > LOG_INTERVAL) {
-                    const remainingSeconds = Math.ceil(remainingMS / 1000);
-                    // Logging energy info with timer info
-                    console.log(`[Energy Drain Status] Player ${this.username}: Time left on current cell: ${remainingSeconds}s. Total cells: ${this.energyTimestamps.length}`);
-                    this.lastEnergyLogTime = now;
-                }
-            }
-
-            if (remainingMS <= 0) {
-                // Energy cell expired
-                this.energyTimestamps.shift();
-                console.log(`[Energy Drain] Player ${this.username} consumed one energy cell. Remaining cells: ${this.energyTimestamps.length}`);
-                
-                // If this was the last cell, stop movement logic execution for this frame
-                if (!this.isPowered()) {
-                    this.currentCellDrainRatio = 0; // Reset ratio if no power
-                    this.flashState = 0;
-                    this.state = PLAYER_STATE.IDLE; // Stop chopping if power runs out
-                    return; 
-                }
+            // If energy just ran out
+            if (!hadPower) {
+                this.state = PLAYER_STATE.IDLE; // Stop chopping if power runs out
+                return; 
             }
 
             // If player is idle but has an active command, restart the task.

@@ -98,7 +98,7 @@ function drawSkillIndicator(ctx, player, screenX, usernameTagY, usernameFontSize
 
 
 function drawEnergyBar(ctx, player, screenX, usernameTagY, usernameFontSize) {
-    if (player.energyTimestamps.length === 0) return;
+    if (player.energy.timestamps.length === 0) return;
 
     const barFontSize = usernameFontSize * 0.7; 
     ctx.font = `${barFontSize}px monospace`; 
@@ -112,9 +112,9 @@ function drawEnergyBar(ctx, player, screenX, usernameTagY, usernameFontSize) {
     const totalBarWidth = blockWidth * MAX_ENERGY_SLOTS;
     const startX = screenX - totalBarWidth / 2;
 
-    const totalEnergyCells = player.energyTimestamps.length;
+    const totalEnergyCells = player.energy.timestamps.length;
     
-    const remainingRatio = 1 - player.currentCellDrainRatio;
+    const remainingRatio = 1 - player.energy.currentCellDrainRatio;
     const partialBlockIndex = Math.max(0, Math.min(PARTIAL_BLOCKS.length - 1, Math.floor(remainingRatio * PARTIAL_BLOCKS.length)));
 
     for (let i = 0; i < MAX_ENERGY_SLOTS; i++) {
@@ -138,7 +138,7 @@ function drawEnergyBar(ctx, player, screenX, usernameTagY, usernameFontSize) {
 
         if (i < totalEnergyCells) {
             if (isDrainingCell) {
-                const alpha = 0.6 + player.flashState * 0.4; 
+                const alpha = 0.6 + player.energy.flashState * 0.4; 
                 ctx.fillStyle = `rgba(${BASE_COLOR_RGB}, ${alpha})`;
             } else {
                 ctx.fillStyle = FILLED_COLOR;
